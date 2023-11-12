@@ -7,6 +7,7 @@ import asyncio
 from asyncio import gather
 import logging
 import io
+import httpx
 from typing import List
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -48,10 +49,12 @@ async def process(image: UploadFile ,num:int):
     im /= std
     im = np.transpose(im, (2, 0, 1))
     data = [im.tolist()]
-    request = {"input":data}
-    request = await requests.post(serving_url,json=data,headers=header)
-    logger.info(f"Endingimage {num} processing ")
-    return request
+    logger.info(f"image {num} : requesting tensorflow serving")
+    async with httpx.AsyncClient() as client:
+        response = await client.post(serving_url, json=data, headers=header)
+    logger.info(f"image {num} : get response tensorflow serving")        
+    logger.info(f"Ending image {num} processing ")
+    return response
 
 @app.get("/test")
 def test_endpoint():
