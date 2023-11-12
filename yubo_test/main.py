@@ -1,21 +1,23 @@
-from fastapi import File, FastAPI
+from fastapi import File, FastAPI, UploadFile
 import json
 import numpy as np 
 from PIL import Image
-
+import requests
 import asyncio
 from asyncio import gather
 import logging
-
+import io
+from typing import List
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
+serving_url = "http://localhost:8501/v1/models/model:predict"
+header = {'Content-Type': 'application/json'}
 app= FastAPI()
 
 
 @app.post("predict/")
-async def predict(images= File(...)):
+async def predict(images:List[UploadFile]= File(...)):
     """
     Predicts categories for a list of uploaded images.
 
@@ -26,7 +28,7 @@ async def predict(images= File(...)):
     async_process = [asyncio.create_task(process(image,num)) for num,image in enumerate(images)]
     return await gather(*async_process)
 
-async def process(image,num):
+async def process(image: UploadFile ,num:int):
     """
     Processes an uploaded image and predicts its category.
 
@@ -46,7 +48,10 @@ async def process(image,num):
     im /= std
     im = np.transpose(im, (2, 0, 1))
     data = [im.tolist()]
+    request = {"input":data}
+    request = await requests.post(serving_url,json=data,headers=header)
     logger.info(f"Endingimage {num} processing ")
+    return request
 
 @app.get("/test")
 def test_endpoint():
