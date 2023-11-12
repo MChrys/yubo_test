@@ -51,23 +51,21 @@ async def run_tests_concurrently():
     run nb_execution time the request and display the result in an async way
     
     """    
-    tasks = []
+    test_tasks = [asyncio.create_task(test_script()) for _ in range(nb_executions)]
+    display_tasks = []
 
-    for i in range(nb_executions):
-        task = asyncio.create_task(test_script())
-        task.add_done_callback(lambda t, i=i: asyncio.create_task(display_result(i + 1, t.result())))
-        tasks.append(task)
+    for i, task in enumerate(test_tasks, start=1):
+        task.add_done_callback(lambda t, i=i: display_tasks.append(asyncio.create_task(display_result(i, t.result()))))
 
-
-    await asyncio.gather(*tasks)
+    
+    await asyncio.gather(*test_tasks)
+    await asyncio.gather(*display_tasks)
 
 async def display_result(index, result):
     print(f"Test result {index}: {result}")
 
 async def main():
-    results = await run_tests_concurrently()
-    result_tasks = [display_result(i, result) for i, result in enumerate(results, start=1)]
-    await asyncio.gather(*result_tasks)
+    await run_tests_concurrently()
 
 if __name__ == "__main__":
     asyncio.run(main())
