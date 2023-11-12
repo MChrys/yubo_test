@@ -1,4 +1,4 @@
-from fastapi import File, FastAPI, UploadFile
+from fastapi import File, FastAPI, UploadFile, HTTPException
 import json
 import numpy as np 
 from PIL import Image
@@ -26,9 +26,20 @@ async def predict(files:List[UploadFile]= File(...)):
     This route accepts multiple images in JPEG format and returns their predicted categories.
 
     """
-    logger.info(f"start predicting")
-    async_process = [asyncio.create_task(process(image,index+1)) for index,image in enumerate(files)]
+    async_process = []
+    index =0
+    for image in files:
+        if image.content_type != "image/jpeg":
+            
+            logger.info(f"image content {image.filename} : {image.content_type}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Wrong format: {image.filename} should be formatted in JPEG"
+                )
+        async_process.append(asyncio.create_task(process(image,index+1)))
+        index +=1
     return await gather(*async_process)
+
 async def process(image: UploadFile ,index:int):
     """
     Processes an uploaded image and predicts its category.
@@ -50,15 +61,24 @@ async def process(image: UploadFile ,index:int):
     im = np.transpose(im, (2, 0, 1))
     data = [im.tolist()]
     request = {"inputs":data}
-    logger.info(f"image {index} : requesting tensorflow serving")
+    logger.info(f"image {image.filename} : requesting tensorflow serving")
     async with httpx.AsyncClient() as client:
-        response = await client.post(serving_url, json=request, headers=header)
+        try:
+            response = await client.post(serving_url, json=request, headers=header)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Tensorflow serving response error  for image {image.filename}: {e}")
+            return {f"serving_error_{index}": str(e)}
+        except httpx.RequestError as e:
+            logger.error(f"Tensorflow serving request error  for image {image.filename}: {e}")
+            return {f"serving_error_{index}": str(e)}
+
     logger.info(f"image {index} : get response tensorflow serving") 
     vector = response.json()["outputs"][0]
     category = get_category(vector,index)
-    logger.info(f"image {index} : get category -> {category}") 
-    logger.info(f"Ending image {index} processing ")
-    with open(f"image_{index}", 'w') as fichier:
+    logger.info(f"image {image.filename} : get category -> {category}") 
+    logger.info(f"Ending image {image.filename} processing ")
+    with open(f"response/response_{image.filename.split(".jpeg")[0]}.json", 'w') as fichier:
         json.dump(response.json(), fichier, indent=4)
     return {f"pred_image_{index}":category}
 
@@ -68,13 +88,17 @@ def get_category(vector:List[float],index)->str:
 
     for n, val in enumerate(vector):
 
-        if val > val_max:
-            val_max = val
-            indice_max = n
+        try:
+            if val > val_max:
+                val_max = val
+                indice_max = n
+        except Exception as e:
+            logger.error(f"Error when trying to getback the category of the image {index}: {e}")
+            return f"Category_Error: {e}"
             
     with open(categories, 'r') as file:
         for i, ligne in enumerate(file, start=1):
-            if i == indice_max:
+            if i == indice_max +1:
                 category = ligne.strip()
     return category
 
