@@ -2,16 +2,19 @@ version: '3.8'
 
 services:
   api:
-    build: ./yubo_test
+    build: 
+      context: .
+      dockerfile: yubo_test/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
       - tensorflow_serving
     environment:
-      - TENSORFLOW_SERVING_URL=tensorflow_serving:8501
+      - TENSORFLOW_SERVING_URL=${SERVING_URL}
 
   tensorflow_serving:
-    build: ./Python_Engineer
+    build:
+      context: Python_Engineer
     ports:
       - "8501:8501"
-      - "8500:8500"
+

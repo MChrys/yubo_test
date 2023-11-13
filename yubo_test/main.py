@@ -9,11 +9,25 @@ import logging
 import io
 import httpx
 from typing import List
-
+from dotenv import load_dotenv
+from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-serving_url = "http://localhost:8501/v1/models/model:predict"
+
+import os
+
+
+serving_env_url = "TENSORFLOW_SERVING_URL"
+
+
+# Test if the var env exist, if it is the case we arein the docker compose otherwise in local
+if (url:=os.getenv(serving_env_url)) is not None:
+
+    serving_url = url + "/v1/models/model:predict"
+else:
+    serving_url = "http://localhost:8501/v1/models/model:predict"
+logger.info(f"serving url : {serving_url} ")
 header = {'Content-Type': 'application/json'}
 categories = 'Python_Engineer/categories_places365.txt'
 app= FastAPI()
@@ -64,6 +78,7 @@ async def process(image: UploadFile ,index:int):
     data = [im.tolist()]
     request = {"inputs":data}
     logger.info(f"image {image.filename} : requesting tensorflow serving")
+    logger.info(f"serving url : {serving_url} ") 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(serving_url, json=request, headers=header)

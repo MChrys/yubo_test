@@ -22,4 +22,4 @@ COPY . /app
 EXPOSE 8000
 
 # Définir la commande pour exécuter l'application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "yubo_test.main:app", "--host", "0.0.0.0", "--port", "8000"]
