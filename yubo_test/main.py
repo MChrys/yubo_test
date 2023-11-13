@@ -9,6 +9,7 @@ import logging
 import io
 import httpx
 from typing import List
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ async def predict(files:List[UploadFile]= File(...)):
     This route accepts multiple images in JPEG format and returns their predicted categories.
 
     """
+    logger.info(f"start predicting")
     async_process = []
     index =0
     for image in files:
@@ -49,10 +51,10 @@ async def process(image: UploadFile ,index:int):
     :return: The predicted category for the image.
     """
     logger.info(f"Starting image {index} processing ")
-    filename = image
+    #filename = image
     shape = (224, 224)
     mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
-    im = Image.open(filename).convert("RGB") 
+    im = Image.open(io.BytesIO(await image.read())).convert("RGB") 
     im = im.resize(shape)
     im = np.array(im, dtype=np.float32)
     im /= 255.
@@ -62,7 +64,7 @@ async def process(image: UploadFile ,index:int):
     data = [im.tolist()]
     request = {"inputs":data}
     logger.info(f"image {image.filename} : requesting tensorflow serving")
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         try:
             response = await client.post(serving_url, json=request, headers=header)
             response.raise_for_status()
@@ -80,14 +82,20 @@ async def process(image: UploadFile ,index:int):
     logger.info(f"Ending image {image.filename} processing ")
     with open(f"response/response_{image.filename.split(".jpeg")[0]}.json", 'w') as fichier:
         json.dump(response.json(), fichier, indent=4)
-    return {f"pred_image_{index}":category}
+    return {f"{image.filename}":category}
 
 def get_category(vector:List[float],index)->str:
+    """
+    Determines the category of an image from a vector of scores.
+
+    :param vector: List of prediction scores for the image.
+    :param index: The index of the image in the list of uploaded files.
+    :return: The category of the image determined from the prediction scores.
+    """
     indice_max = 0
     val_max = vector[0]
 
     for n, val in enumerate(vector):
-
         try:
             if val > val_max:
                 val_max = val

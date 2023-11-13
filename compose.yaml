@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./yubo_test
+    ports:
+      - "8000:8000"
+    depends_on:
+      - tensorflow_serving
+    environment:
+      - TENSORFLOW_SERVING_URL=tensorflow_serving:8501
+
+  tensorflow_serving:
+    build: ./Python_Engineer
+    ports:
+      - "8501:8501"
+      - "8500:8500"
