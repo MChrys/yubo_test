@@ -20,13 +20,13 @@ Get tag classification pour every jpeg in the repo Python_Engineer/test_images/
 Running all service first
 
 ```bash
-    docker-compose up --build
+docker-compose up --build
 ```
 
 Then create de virtual env with poetry to running the  test script
 
 ```bash
-    poetry install
+poetry install
 ```
 
 
@@ -35,11 +35,11 @@ Then create de virtual env with poetry to running the  test script
 from the general repository active the poetry venv
 
 ```bash
-    poetry shell
+poetry shell
 ```
 
 then run the testing script: 
 
 ```bash
-    python tests/testing_script.py
+python tests/testing_script.py
 ```
