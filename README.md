@@ -12,18 +12,34 @@ Get tag classification pour every jpeg in the repo Python_Engineer/test_images/
 
 ## Dependencies 
 
-- python = "^3.12"
-- fastapi = "^0.104.1"
-- uvicorn = "^0.23.2"
-- numpy = { version = "^1.26.0", python = ">=3.12,<3.13" }
-- pillow = "^10.1.0"
-- requests = "^2.31.0"
-- httpx = "^0.25.1"
-- python-multipart = "^0.0.6"
+- poetry
+- docker
+- docker-compose
 ## Installation
 
-Instructions pour installer le projet et ses dépendances.
+Running all service first
+
+```bash
+    docker-compose up --build
+```
+
+Then create de virtual env with poetry to running the  test script
 
 ```bash
     poetry install
+```
+
+
+## Run
+
+from the general repository active the poetry venv
+
+```bash
+    poetry shell
+```
+
+then run the testing script: 
+
+```bash
+    python tests/testing_script.py
 ```
